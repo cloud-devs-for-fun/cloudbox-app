@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2022", // Latest stable ECMAScript with class fields, at(), etc.
+    "lib": ["ES2022"], // Include ES2022 APIs like Array.at(), etc.
+    "module": "CommonJS", // Required for Node.js unless using "type": "module"
+    "moduleResolution": "node", // Standard Node.js resolution
+    "resolveJsonModule": true, // Allow importing JSON files
+    "esModuleInterop": true, // Enable compatibility with CommonJS modules
+    "allowSyntheticDefaultImports": true, // Allow 'import x from y' when no default export
+    "forceConsistentCasingInFileNames": true,
+
+    /* Paths */
+    "rootDir": "./src", // Root directory of your TS files
+    "outDir": "./dist", // Where compiled JS goes
+
+    /* Alias */
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"]
+    },
+
+    /* Type Checking */
+    "strict": true, // Enable all strict checks
+    "noUnusedLocals": true, // Warn about unused variables
+    "noUnusedParameters": true, // Warn about unused function params
+    "noImplicitReturns": true, // Functions must return a value
+    "noImplicitAny": true, // Safer switch cases
+    "noFallthroughCasesInSwitch": true, // Enable error reporting for expressions and declarations with an implied any type
+
+    /* Build Options */
+    "skipLibCheck": true, // Speeds up builds
+    "incremental": true, // Enable faster rebuilds
+
+    /* Emit */
+    "sourceMap": true // Useful for debugging
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
