@@ -30,9 +30,21 @@ const s3Objects = {
 
     const command = new GetObjectCommand(params);
 
-    const { Body } = await S3.send(command);
+    const response = await S3.send(command);
 
-    return Body?.transformToString();
+    return response.Body?.transformToString();
+  },
+
+  getStream: async (key: string) => {
+    const params = {
+      Bucket: process.env.BUCKET_NAME,
+      Key: key,
+    };
+
+    const command = new GetObjectCommand(params);
+
+    const response = await S3.send(command);
+    return response.Body?.transformToByteArray();
   },
 
   getList: async () => {
