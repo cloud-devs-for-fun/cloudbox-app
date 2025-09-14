@@ -2,22 +2,21 @@ import { UploadObject } from "~/service/aws/type";
 
 import { NextFunction, Request, Response } from "express";
 
-import path from "path";
-
 import { StatusCodes } from "http-status-codes";
 
-import s3Objects from "~/service/aws/s3";
-
 import logger from "~/utils/logger";
-import pool from "~/config/db";
-import { v4 as uuidv4 } from "uuid";
 
-export const S3Controller = {
-  onUpload: async (req: Request, res: Response, next: NextFunction) => {
+import { FileUpload } from "~/dto/FileDto";
+import {
+  IFileUploadInteractor,
+  onUploadInteractor,
+} from "~/interfaces/FIleUpload";
+import moment from "moment";
+import path from "path";
+
+export const S3Controller = (interactor: IFileUploadInteractor) => {
+  const onUpload = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const post =
-        "INSERT INTO s3_files (filename, file_url, mime_type) VALUES ($1, $2, $3) RETURNING *";
-
       const file = req.file;
 
       if (!file) {
@@ -25,100 +24,106 @@ export const S3Controller = {
           .status(StatusCodes.BAD_REQUEST)
           .json({ message: "No file uploaded" });
       }
-
+      const time = moment().format("YYYYMMDDHHmmss");
+      const withoutExt = path.parse(file.originalname).name;
       const ext = path.extname(file.originalname);
-      const originalname = `${uuidv4()}${ext}`;
-      const filenameWithoutExt = path.parse(file.originalname).name;
+      const originalname = `${withoutExt}-${time}${ext}`;
 
-      const params: UploadObject = {
+      const s3UploadObject: UploadObject = {
         key: originalname,
         body: file.buffer,
         ContentType: file.mimetype,
       };
 
-      await s3Objects.uploadObject(params);
+      const fileUploadParams: FileUpload = {
+        filename: originalname,
+        fileUrl: s3UploadObject.key,
+        mimeType: file.mimetype,
+      };
 
-      const result = await pool.query(post, [
-        originalname,
-        filenameWithoutExt,
-        file.mimetype,
-      ]);
+      const uploadObjectParams: onUploadInteractor = {
+        file: fileUploadParams,
+        s3Object: s3UploadObject,
+      };
+
+      const result = await interactor.onUpload(uploadObjectParams);
 
       return res.status(StatusCodes.CREATED).json({
-        result: result.rows[0],
+        result: result,
         message: "S3 Object created successfully",
       });
     } catch (error) {
-      logger.error("Failed to upload file in s S3", error);
+      logger.error("Failed to upload file in S3", error);
       return next(error);
     }
-  },
+  };
 
-  onList: async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const data = await s3Objects.getList();
+  return { onUpload };
+  // onList: async (_req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     const data = await s3Objects.getList();
 
-      return res.status(StatusCodes.OK).json({ content: data.Contents });
-    } catch (error) {
-      logger.error("Failed to interact with S3", error);
-      return next(error);
-    }
-  },
+  //     return res.status(StatusCodes.OK).json({ content: data });
+  //   } catch (error) {
+  //     logger.error("Failed to interact with S3", error);
+  //     return next(error);
+  //   }
+  // },
 
-  onGetObject: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { filename } = req.params;
+  // onGetObject: async (req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     const { filename } = req.params;
 
-      if (!filename) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .json({ message: "Filename is required" });
-      }
+  //     if (!filename) {
+  //       return res
+  //         .status(StatusCodes.BAD_REQUEST)
+  //         .json({ message: "Filename is required" });
+  //     }
 
-      const response = await s3Objects.getObject(filename);
+  //     const response = await s3Objects.getObject(filename);
 
-      res.setHeader("Content-Type", "application/octet-stream");
+  //     res.setHeader("Content-Type", "application/octet-stream");
 
-      return res.status(StatusCodes.OK).json(response);
-    } catch (error) {
-      logger.error("Failed to interact with S3", error);
-      return next(error);
-    }
-  },
+  //     return res.status(StatusCodes.OK).json(response);
+  //   } catch (error) {
+  //     logger.error("Failed to interact with S3", error);
+  //     return next(error);
+  //   }
+  // },
 
-  onGetStream: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { filename } = req.params;
+  // onGetStream: async (req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     const { filename } = req.params;
 
-      if (!filename) {
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .json({ message: "Filename is required" });
-      }
+  //     if (!filename) {
+  //       return res
+  //         .status(StatusCodes.BAD_REQUEST)
+  //         .json({ message: "Filename is required" });
+  //     }
 
-      const response = await s3Objects.getObject(filename);
+  //     const response = await s3Objects.getObject(filename);
 
-      res.setHeader("Content-Type", "application/octet-stream");
+  //     res.setHeader("Content-Type", "application/octet-stream");
 
-      return res.status(StatusCodes.OK).json(response);
-    } catch (error) {
-      logger.error("Failed to interact with S3", error);
-      return next(error);
-    }
-  },
+  //     return res.status(StatusCodes.OK).json(response);
+  //   } catch (error) {
+  //     logger.error("Failed to interact with S3", error);
+  //     return next(error);
+  //   }
+  // },
 
-  onGetDbSample: async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const query = "SELECT * FROM s3_files";
+  // onGetDbSample: async (_req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     const query = "SELECT * FROM s3_files";
 
-      const result = await pool.query(query);
+  //     const result = await pool.query(query);
 
-      return res
-        .status(StatusCodes.OK)
-        .json({ results: result.rows, message: "Sample DB interaction" });
-    } catch (error) {
-      logger.error("Failed to interact with the database", error);
-      return next(error);
-    }
-  },
+  //     return res
+  //       .status(StatusCodes.OK)
+  //       .json({ results: result.rows, message: "Sample DB interaction" });
+  //   } catch (error) {
+  //     logger.error("Failed to interact with the database", error);
+  //     return next(error);
+  //   }
+  // },
 };

@@ -9,12 +9,12 @@ import {
 import { S3 } from "~/config/aws";
 
 const s3Objects = {
-  uploadObject: async ({ key, body, ContentType }: UploadObject) => {
+  uploadObject: async (fileObject: UploadObject) => {
     const params = {
       Bucket: process.env.BUCKET_NAME,
-      Key: key,
-      Body: body,
-      ContentType: ContentType,
+      Key: fileObject.key,
+      Body: fileObject.body,
+      ContentType: fileObject.ContentType,
     };
 
     const command = new PutObjectCommand(params);
